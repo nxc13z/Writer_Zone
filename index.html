@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Writer's Sanctum</title>
+<style>
+  :root {
+    --bg:#fdf6e9; --surface:#fffbf2; --surface-2:#f7ecd5;
+    --text:#3a2818; --text-soft:#6b4a2a; --muted:#a88860;
+    --border:#ecd9b3; --accent:#e8853a; --accent-2:#f0b840;
+    --accent-3:#d96a1f; --accent-bg:#fde8cc;
+    --serif:Georgia,"Iowan Old Style",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"SF Mono",Consolas,monospace;
+  }
+  [data-theme="dusk"]{--bg:#2a1f14;--surface:#352818;--surface-2:#3f2f1c;--text:#f5e6cc;--text-soft:#d4b888;--muted:#8a6a40;--border:#4a3820;--accent:#f0a050;--accent-2:#f5c870;--accent-3:#e88030;--accent-bg:#4a3018;}
+  [data-theme="honey"]{--bg:#fef5e0;--surface:#fff9e8;--surface-2:#f8e8b8;--text:#4a3410;--text-soft:#7a5a20;--muted:#b89040;--border:#f0d888;--accent:#d89020;--accent-2:#f0b840;--accent-3:#b87010;--accent-bg:#fcecc0;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;transition:background .3s}
+  .app{display:grid;grid-template-columns:230px 1fr 0;grid-template-rows:48px 1fr 28px;height:100vh;transition:grid-template-columns .25s}
+  .app.bible-open{grid-template-columns:230px 1fr 280px}
+  .topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:6px}
+  .logo{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--accent-3);display:flex;align-items:center;gap:6px}
+  .logo-mark{width:20px;height:20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+  .spacer{flex:1}
+  button,select{background:transparent;border:1px solid transparent;color:var(--text-soft);padding:6px 10px;border-radius:5px;cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s}
+  button:hover{background:var(--surface-2);color:var(--text)}
+  button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-3));color:#fff;font-weight:500}
+  button.primary:hover{filter:brightness(1.08)}
+  button.active{background:var(--accent-bg);color:var(--accent-3)}
+  button.recording{background:var(--accent-3);color:#fff;animation:pulse 1.5s infinite}
+  @keyframes pulse{50%{opacity:.6}}
+  select{background:var(--surface-2);border:1px solid var(--border);color:var(--text);cursor:pointer}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+  .sidebar-section{padding:12px;border-bottom:1px solid var(--border)}
+  .sidebar-title{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  .sidebar-title button{color:var(--accent);padding:2px 6px;font-size:16px;line-height:1}
+  .sidebar-title button:hover{background:var(--accent-bg)}
+  .project-select{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-family:inherit;font-size:13px;cursor:pointer;margin-bottom:8px}
+  .goal-card{background:linear-gradient(135deg,var(--accent-bg),var(--surface-2));border-radius:6px;padding:10px;font-size:12px;border:1px solid var(--border)}
+  .goal-row{display:flex;justify-content:space-between;margin-bottom:4px;color:var(--text-soft)}
+  .goal-row strong{color:var(--accent-3);font-variant-numeric:tabular-nums}
+  .goal-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:8px}
+  .goal-fill{height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));transition:width .4s}
+  .streak{font-size:11px;color:var(--accent-3);font-weight:600}
+  .chapter-list{list-style:none}
+  .chapter-item{padding:7px 10px;border-radius:5px;cursor:pointer;font-size:13px;color:var(--text-soft);margin-bottom:2px;display:flex;justify-content:space-between;align-items:center;transition:all .1s;border-left:3px solid transparent}
+  .chapter-item:hover{background:var(--surface-2);color:var(--text)}
+  .chapter-item.active{background:var(--accent-bg);color:var(--accent-3);font-weight:500;border-left-color:var(--accent)}
+  .chapter-words{font-size:10px;color:var(--muted);font-family:var(--mono)}
+  .chapter-status{width:6px;height:6px;border-radius:50%;background:var(--muted);margin-right:6px;display:inline-block}
+  .chapter-status.revising{background:var(--accent-2)}
+  .chapter-status.final{background:var(--accent)}
+  .main{overflow-y:auto;background:var(--bg)}
+  .editor-wrap{max-width:720px;margin:0 auto;padding:36px 48px 80px}
+  .chapter-title{width:100%;font-family:var(--serif);font-size:32px;font-weight:600;background:transparent;border:none;outline:none;color:var(--text);padding:6px 0;margin-bottom:6px;letter-spacing:-.5px}
+  .chapter-title::placeholder{color:var(--muted);opacity:.5}
+  .chapter-subtitle{font-size:11px;color:var(--muted);margin-bottom:18px;font-family:var(--mono);letter-spacing:.5px}
+  .toolbar{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;align-items:center}
+  .tool-divider{width:1px;height:18px;background:var(--border);margin:0 4px}
+  .editor{font-family:var(--serif);font-size:17px;line-height:1.75;color:var(--text);outline:none;min-height:60vh}
+  .editor:empty::before{content:"Begin writing here...";color:var(--muted);font-style:italic}
+  .editor h1{font-size:1.9em;margin:.8em 0 .4em;color:var(--accent-3)}
+  .editor h2{font-size:1.5em;margin:.7em 0 .3em;color:var(--accent-3)}
+  .editor h3{font-size:1.2em;margin:.6em 0 .3em}
+  .editor p{margin-bottom:.9em}
+  .editor blockquote{border-left:3px solid var(--accent);padding:12px 16px;margin:1.2em 0;color:var(--text-soft);font-style:italic;background:var(--accent-bg);border-radius:0 4px 4px 0}
+  .editor ul,.editor ol{margin:.9em 0 .9em 24px}
+  .editor hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+  .editor .interim{color:var(--muted);font-style:italic}
+  .statusbar{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 14px;font-size:11px;color:var(--muted);gap:14px;font-family:var(--mono)}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:4px}
+  .status-dot.saving{background:var(--accent-2);animation:pulse 1s infinite}
+  .status-spacer{flex:1}
+  .voice-badge{font-size:10px;padding:2px 6px;border-radius:10px;background:var(--accent-bg);color:var(--accent-3);font-weight:600}
+  .bible{background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+  .tab-bar{display:flex;border-bottom:1px solid var(--border);padding:0 6px}
+  .tab{flex:1;background:transparent;border:none;color:var(--muted);padding:10px 6px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--accent-3);border-bottom-color:var(--accent)}
+  .tab-content{flex:1;padding:10px;display:none;flex-direction:column;gap:6px;overflow-y:auto}
+  .tab-content.active{display:flex}
+  .bible-item{background:var(--surface-2);border-radius:5px;padding:8px 10px;cursor:pointer;border:1px solid transparent;transition:all .12s}
+  .bible-item:hover{border-color:var(--border)}
+  .bible-item-name{font-weight:600;font-size:13px;margin-bottom:2px}
+  .bible-item-desc{font-size:11px;color:var(--text-soft);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .bible-editor{display:none;flex-direction:column;gap:8px;padding:10px;flex:1}
+  .bible-editor.active{display:flex}
+  .bible-input{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-family:inherit;font-size:13px;outline:none;resize:none}
+  .bible-input:focus{border-color:var(--accent)}
+  .bible-textarea{flex:1;min-height:140px;font-family:var(--serif);line-height:1.5}
+  .modal{position:fixed;inset:0;background:rgba(40,20,0,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100}
+  .modal.open{display:flex}
+  .modal-content{background:var(--surface);border-radius:10px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:85vh;overflow-y:auto}
+  .modal h3{font-family:var(--serif);margin-bottom:12px;color:var(--accent-3);font-size:20px}
+  .modal p{color:var(--text-soft);margin-bottom:14px;font-size:13px;line-height:1.5}
+  .form-group{margin-bottom:14px}
+  .form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .form-input{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-family:var(--mono);font-size:12px;outline:none}
+  .form-input:focus{border-color:var(--accent)}
+  .form-hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .form-hint a{color:var(--accent-3)}
+  .radio-group{display:flex;gap:8px}
+  .radio-option{flex:1;padding:10px;border:1px solid var(--border);border-radius:5px;cursor:pointer;text-align:center;background:var(--surface-2);transition:all .15s}
+  .radio-option:hover{border-color:var(--accent)}
+  .radio-option.selected{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-3)}
+  .radio-option strong{display:block;font-size:13px;margin-bottom:2px}
+  .radio-option small{font-size:10px;color:var(--muted)}
+  .export-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .export-btn{padding:12px;border:1px solid var(--border);border-radius:6px;text-align:left;background:var(--surface-2);color:var(--text);cursor:pointer;transition:all .15s}
+  .export-btn:hover{border-color:var(--accent);background:var(--accent-bg)}
+  .export-btn strong{display:block;font-size:13px;color:var(--accent-3)}
+  .export-btn small{color:var(--muted);font-size:11px}
+  .toast{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:var(--accent-3);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200}
+  .toast.show{opacity:1}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+  @media(max-width:900px){.app{grid-template-columns:0 1fr 0}.app.left-open{grid-template-columns:220px 1fr 0}.app.bible-open{grid-template-columns:0 1fr 260px}.sidebar,.bible{position:fixed;top:48px;bottom:28px;z-index:20;box-shadow:0 0 24px rgba(0,0,0,.2)}.sidebar{left:0}.bible{right:0}.editor-wrap{padding:24px}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="logo"><span class="logo-mark">W</span> Writer's Sanctum</div>
+    <div class="spacer"></div>
+    <button id="focusBtn" title="Focus mode">◎</button>
+    <button id="snapshotBtn" title="Save snapshot">◉</button>
+    <button id="settingsBtn" title="Settings">⚙</button>
+    <button id="themeBtn" title="Theme">◐</button>
+    <button id="voiceBtn" title="Dictate">🎤</button>
+    <span class="voice-badge" id="voiceBadge">Browser</span>
+    <button id="bibleBtn" title="Story bible">📖</button>
+    <button id="exportBtn" class="primary">Export ↓</button>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title"><span>Project</span><button id="newProjectBtn" title="New project">+</button></div>
+      <select class="project-select" id="projectSelect"></select>
+      <div class="goal-card">
+        <div class="goal-row"><span>Today</span><strong id="todayWords">0 / 2000</strong></div>
+        <div class="goal-bar"><div class="goal-fill" id="todayFill" style="width:0%"></div></div>
+        <div class="goal-row"><span>Project</span><strong id="projectWords">0</strong></div>
+        <div class="goal-bar"><div class="goal-fill" id="projectFill" style="width:0%"></div></div>
+        <div class="streak" id="streakDisplay">🔥 0 day streak</div>
+      </div>
+    </div>
+    <div class="sidebar-section" style="flex:1">
+      <div class="sidebar-title"><span>Chapters</span><button id="newChapterBtn" title="New chapter">+</button></div>
+      <ul class="chapter-list" id="chapterList"></ul>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="editor-wrap">
+      <input type="text" class="chapter-title" id="chapterTitle" placeholder="Chapter title..." />
+      <div class="chapter-subtitle" id="chapterSubtitle">CHAPTER 1 · 0 WORDS · DRAFT</div>
+      <div class="toolbar">
+        <select id="blockFormat">
+          <option value="p">¶</option>
+          <option value="h1">H1</option>
+          <option value="h2">H2</option>
+          <option value="h3">H3</option>
+          <option value="blockquote">❝</option>
+        </select>
+        <div class="tool-divider"></div>
+        <button data-cmd="bold" title="Bold"><b>B</b></button>
+        <button data-cmd="italic" title="Italic"><i>I</i></button>
+        <button data-cmd="underline" title="Underline"><u>U</u></button>
+        <button data-cmd="strikeThrough" title="Strike"><s>S</s></button>
+        <div class="tool-divider"></div>
+        <button data-cmd="insertUnorderedList" title="Bullets">•</button>
+        <button data-cmd="insertOrderedList" title="Numbered">1.</button>
+        <button data-cmd="insertHorizontalRule" title="Divider">—</button>
+        <div class="tool-divider"></div>
+        <button id="statusToggle" title="Cycle status">● Draft</button>
+      </div>
+      <div class="editor" id="editor" contenteditable="true" spellcheck="true"></div>
+    </div>
+  </main>
+
+  <aside class="bible">
+    <div class="tab-bar">
+      <button class="tab active" data-tab="characters">Characters</button>
+      <button class="tab" data-tab="places">Places</button>
+      <button class="tab" data-tab="notes">Notes</button>
+    </div>
+    <div class="tab-content active" data-content="characters">
+      <div id="charactersList"></div>
+      <button class="primary" id="addCharacterBtn" style="justify-content:center;margin-top:6px;width:100%">+ Character</button>
+    </div>
+    <div class="tab-content" data-content="places">
+      <div id="placesList"></div>
+      <button class="primary" id="addPlaceBtn" style="justify-content:center;margin-top:6px;width:100%">+ Place</button>
+    </div>
+    <div class="tab-content" data-content="notes">
+      <div id="notesList"></div>
+      <button class="primary" id="addNoteBtn" style="justify-content:center;margin-top:6px;width:100%">+ Note</button>
+    </div>
+    <div class="bible-editor" id="bibleEditor">
+      <input type="text" class="bible-input" id="bibleName" placeholder="Name" />
+      <textarea class="bible-input bible-textarea" id="bibleDesc" placeholder="Description, traits, notes..."></textarea>
+      <div style="display:flex;gap:6px">
+        <button class="primary" id="bibleSave" style="flex:1;justify-content:center">Save</button>
+        <button id="bibleCancel">Cancel</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="statusbar">
+    <span><span class="status-dot" id="saveDot"></span><span id="saveStatus">Saved</span></span>
+    <span id="voiceStatus" style="color:var(--accent-3);display:none">● Listening</span>
+    <div class="status-spacer"></div>
+    <span id="wordCount">0 words</span>
+    <span id="charCount">0 chars</span>
+    <span id="readTime">0 min</span>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <h3>Settings</h3>
+    <p>Configure your voice provider and writing goals.</p>
+    <div class="form-group">
+      <label class="form-label">Voice Provider</label>
+      <div class="radio-group">
+        <div class="radio-option" data-provider="browser"><strong>Browser</strong><small>Free · Web Speech</small></div>
+        <div class="radio-option" data-provider="whisper"><strong>Whisper</strong><small>OpenAI API · Premium</small></div>
+      </div>
+    </div>
+    <div class="form-group" id="whisperGroup" style="display:none">
+      <label class="form-label">OpenAI API Key</label>
+      <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-..." />
+      <div class="form-hint">Stored locally. Get a key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Voice Language</label>
+      <select class="form-input" id="voiceLang" style="font-family:var(--sans)">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="en-IN">English (India)</option>
+        <option value="te-IN">తెలుగు (Telugu)</option>
+        <option value="hi-IN">हिन्दी (Hindi)</option>
+        <option value="ta-IN">தமிழ் (Tamil)</option>
+        <option value="es-ES">Español</option>
+        <option value="fr-FR">Français</option>
+        <option value="de-DE">Deutsch</option>
+        <option value="zh-CN">中文</option>
+        <option value="ja-JP">日本語</option>
+        <option value="ar-SA">العربية</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Daily Word Goal</label>
+      <input type="number" class="form-input" id="dailyGoalInput" value="2000" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Project Word Goal</label>
+      <input type="number" class="form-input" id="totalGoalInput" value="80000" />
+    </div>
+    <div class="modal-actions">
+      <button id="closeSettings">Close</button>
+      <button class="primary" id="saveSettings">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="exportModal">
+  <div class="modal-content">
+    <h3>Export Manuscript</h3>
+    <p>Choose scope and format for your document.</p>
+    <div class="form-group">
+      <label class="form-label">Scope</label>
+      <div class="radio-group">
+        <div class="radio-option selected" data-scope="chapter"><strong>This chapter</strong><small>Current only</small></div>
+        <div class="radio-option" data-scope="book"><strong>Full book</strong><small>All chapters</small></div>
+      </div>
+    </div>
+    <div class="export-grid">
+      <button class="export-btn" data-format="doc"><strong>Word (.doc)</strong><small>Opens in MS Word</small></button>
+      <button class="export-btn" data-format="html"><strong>HTML</strong><small>Web page</small></button>
+      <button class="export-btn" data-format="md"><strong>Markdown</strong><small>Plain text</small></button>
+      <button class="export-btn" data-format="txt"><strong>Plain text</strong><small>No formatting</small></button>
+    </div>
+    <div class="modal-actions"><button id="closeExport">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const LS = 'writersSanctum.v6';
+  const $ = id => document.getElementById(id);
+  const defaultProject = () => ({
+    id: 'p_' + Date.now(), name: 'Untitled Project',
+    goal: { daily: 2000, total: 80000 },
+    chapters: [{ id: 'c_' + Date.now(), title: 'Chapter 1', content: '', status: 'draft' }]
+  });
+
+  let state = load();
+  let saveTimer, exportScope = 'chapter', bibleCtx = { type: 'characters', id: null };
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(LS));
+      if (s?.projects?.length) {
+        s.settings = s.settings || { provider: 'browser', apiKey: '', lang: 'en-US' };
+        s.streak = s.streak || { count: 0, todayWords: 0, todayDate: null, lastDate: null, dayStartWords: 0 };
+        s.characters = s.characters || []; s.places = s.places || []; s.notes = s.notes || [];
+        return s;
+      }
+    } catch (e) {}
+    const p = defaultProject();
+    return { projects: [p], activeProjectId: p.id, activeChapterId: p.chapters[0].id, theme: 'light', settings: { provider: 'browser', apiKey: '', lang: 'en-US' }, streak: { count: 0, todayWords: 0, todayDate: null, lastDate: null, dayStartWords: 0 }, characters: [], places: [], notes: [] };
+  }
+
+  function save() {
+    const dot = $('saveDot'), st = $('saveStatus');
+    dot.classList.add('saving'); st.textContent = 'Saving...';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      localStorage.setItem(LS, JSON.stringify(state));
+      dot.classList.remove('saving'); st.textContent = 'Saved';
+    }, 400);
+  }
+
+  const getProject = () => state.projects.find(p => p.id === state.activeProjectId);
+  const getChapter = () => getProject().chapters.find(c => c.id === state.activeChapterId);
+  const esc = s => (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const editor = $('editor'), chapterTitle = $('chapterTitle'), chapterSubtitle = $('chapterSubtitle');
+  const chapterList = $('chapterList'), projectSelect = $('projectSelect');
+
+  function render() {
+    projectSelect.innerHTML = '';
+    state.projects.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = p.name;
+      if (p.id === state.activeProjectId) o.selected = true;
+      projectSelect.appendChild(o);
+    });
+    chapterList.innerHTML = '';
+    getProject().chapters.forEach(ch => {
+      const li = document.createElement('li');
+      li.className = 'chapter-item' + (ch.id === state.activeChapterId ? ' active' : '');
+      const words = (ch.content || '').trim() ? ch.content.trim().split(/\s+/).length : 0;
+      li.innerHTML = `<span><span class="chapter-status ${ch.status}"></span>${esc(ch.title || 'Untitled')}</span><span class="chapter-words">${words}</span>`;
+      li.onclick = () => switchChapter(ch.id);
+      li.oncontextmenu = e => {
+        e.preventDefault();
+        if (getProject().chapters.length === 1) return;
+        const action = prompt(`"${ch.title}"\n\nType: rename, duplicate, delete`, 'rename');
+        if (!action) return;
+        if (action === 'rename') {
+          const n = prompt('New name:', ch.title);
+          if (n) { ch.title = n; render(); loadEditor(); save(); }
+        } else if (action === 'duplicate') {
+          const dup = { ...ch, id: 'c_' + Date.now(), title: ch.title + ' (copy)' };
+          getProject().chapters.splice(getProject().chapters.indexOf(ch) + 1, 0, dup);
+          render(); toast('Duplicated'); save();
+        } else if (action === 'delete') {
+          if (!confirm(`Delete "${ch.title}"?`)) return;
+          const idx = getProject().chapters.indexOf(ch);
+          getProject().chapters.splice(idx, 1);
+          if (ch.id === state.activeChapterId) state.activeChapterId = getProject().chapters[Math.max(0, idx - 1)].id;
+          render(); loadEditor(); save();
+        }
+      };
+      chapterList.appendChild(li);
+    });
+  }
+
+  function loadEditor() {
+    const ch = getChapter(); if (!ch) return;
+    chapterTitle.value = ch.title || '';
+    editor.innerHTML = ch.content || '';
+    const proj = getProject(), idx = proj.chapters.indexOf(ch) + 1;
+    const words = (ch.content || '').trim() ? ch.content.trim().split(/\s+/).length : 0;
+    chapterSubtitle.textContent = `CHAPTER ${idx} · ${words} WORDS · ${ch.status.toUpperCase()}`;
+    $('statusToggle').textContent = '● ' + ch.status.charAt(0).toUpperCase() + ch.status.slice(1);
+    updateStats();
+  }
+
+  function updateStats() {
+    const text = editor.innerText || '';
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    $('wordCount').textContent = `${words} word${words !== 1 ? 's' : ''}`;
+    $('charCount').textContent = `${text.length} chars`;
+    $('readTime').textContent = words > 0 ? `${Math.max(1, Math.ceil(words / 220))} min` : '0 min';
+    const proj = getProject();
+    let total = 0;
+    proj.chapters.forEach(c => { const t = (c.content || '').trim(); if (t) total += t.split(/\s+/).length; });
+    $('projectWords').textContent = total.toLocaleString();
+    $('projectFill').style.width = Math.min(100, (total / proj.goal.total) * 100) + '%';
+    const today = new Date().toDateString(), s = state.streak;
+    if (s.todayDate !== today) {
+      if (s.lastDate && s.lastDate !== today) {
+        const y = new Date(); y.setDate(y.getDate() - 1);
+        if (s.lastDate !== y.toDateString()) s.count = 0;
+      }
+      s.todayDate = today; s.dayStartWords = total; s.todayWords = 0;
+    }
+    s.todayWords = Math.max(0, total - s.dayStartWords);
+    if (s.todayWords > 0 && s.lastDate !== today) { s.count++; s.lastDate = today; }
+    $('todayWords').textContent = `${s.todayWords} / ${proj.goal.daily}`;
+    $('todayFill').style.width = Math.min(100, (s.todayWords / proj.goal.daily) * 100) + '%';
+    $('streakDisplay').textContent = `🔥 ${s.count} day streak`;
+  }
+
+  function switchChapter(id) {
+    const ch = getChapter(); if (ch) { ch.content = editor.innerHTML; ch.title = chapterTitle.value; }
+    state.activeChapterId = id; render(); loadEditor(); save();
+  }
+  function switchProject(id) {
+    const ch = getChapter(); if (ch) { ch.content = editor.innerHTML; ch.title = chapterTitle.value; }
+    state.activeProjectId = id; state.activeChapterId = getProject().chapters[0].id;
+    render(); loadEditor(); save();
+  }
+
+  editor.addEventListener('input', () => { const ch = getChapter(); if (ch) ch.content = editor.innerHTML; updateStats(); render(); save(); });
+  chapterTitle.addEventListener('input', () => { const ch = getChapter(); if (ch) ch.title = chapterTitle.value; render(); loadEditor(); save(); });
+  projectSelect.onchange = e => switchProject(e.target.value);
+
+  document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => { document.execCommand(b.dataset.cmd, false, null); editor.focus(); });
+  $('blockFormat').onchange = e => { document.execCommand('formatBlock', false, e.target.value); editor.focus(); };
+
+  $('statusToggle').onclick = () => {
+    const ch = getChapter(), cycle = ['draft', 'revising', 'final'];
+    ch.status = cycle[(cycle.indexOf(ch.status) + 1) % cycle.length];
+    loadEditor(); render(); save();
+  };
+
+  $('newChapterBtn').onclick = () => {
+    const proj = getProject();
+    const ch = { id: 'c_' + Date.now(), title: `Chapter ${proj.chapters.length + 1}`, content: '', status: 'draft' };
+    proj.chapters.push(ch); switchChapter(ch.id); toast('Chapter added');
+  };
+  $('newProjectBtn').onclick = () => {
+    const name = prompt('Project name:', 'New Project'); if (!name) return;
+    const p = defaultProject(); p.name = name; state.projects.push(p); switchProject(p.id); toast('Project created');
+  };
+  $('snapshotBtn').onclick = () => {
+    const ch = getChapter(); ch.content = editor.innerHTML;
+    localStorage.setItem(`snapshot.${ch.id}.${Date.now()}`, JSON.stringify({ title: ch.title, content: ch.content, date: Date.now() }));
+    toast('Snapshot saved'); save();
+  };
+  $('focusBtn').onclick = () => {
+    const sb = document.querySelector('.sidebar');
+    const tb = document.querySelector('.topbar');
+    const stb = document.querySelector('.statusbar');
+    const hidden = sb.style.display === 'none';
+    sb.style.display = hidden ? '' : 'none';
+    tb.style.opacity = hidden ? '' : '0';
+    stb.style.display = hidden ? '' : 'none';
+  };
+
+  const themes = ['light', 'dusk', 'honey'];
+  $('themeBtn').onclick = () => {
+    state.theme = themes[(themes.indexOf(state.theme) + 1) % themes.length];
+    document.documentElement.setAttribute('data-theme', state.theme); save(); toast('Theme: ' + state.theme);
+  };
+  document.documentElement.setAttribute('data-theme', state.theme);
+
+  $('settingsBtn').onclick = () => {
+    $('apiKeyInput').value = state.settings.apiKey || '';
+    $('voiceLang').value = state.settings.lang;
+    $('dailyGoalInput').value = getProject().goal.daily;
+    $('totalGoalInput').value = getProject().goal.total;
+    document.querySelectorAll('[data-provider]').forEach(o => o.classList.toggle('selected', o.dataset.provider === state.settings.provider));
+    $('whisperGroup').style.display = state.settings.provider === 'whisper' ? '' : 'none';
+    $('settingsModal').classList.add('open');
+  };
+  $('closeSettings').onclick = () => $('settingsModal').classList.remove('open');
+  document.querySelectorAll('[data-provider]').forEach(o => {
+    o.onclick = () => {
+      document.querySelectorAll('[data-provider]').forEach(x => x.classList.remove('selected'));
+      o.classList.add('selected');
+      $('whisperGroup').style.display = o.dataset.provider === 'whisper' ? '' : 'none';
+    };
+  });
+  $('saveSettings').onclick = () => {
+    state.settings.provider = document.querySelector('[data-provider].selected').dataset.provider;
+    state.settings.apiKey = $('apiKeyInput').value.trim();
+    state.settings.lang = $('voiceLang').value;
+    getProject().goal.daily = parseInt($('dailyGoalInput').value) || 2000;
+    getProject().goal.total = parseInt($('totalGoalInput').value) || 80000;
+    $('voiceBadge').textContent = state.settings.provider === 'whisper' ? 'Whisper' : 'Browser';
+    save(); updateStats(); $('settingsModal').classList.remove('open'); toast('Settings saved');
+  };
+  $('voiceBadge').textContent = state.settings.provider === 'whisper' ? 'Whisper' : 'Browser';
+
+  let isRecording = false, mediaRecorder = null, audioChunks = [];
+  let browserRec = null, browserInterim = null;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    browserRec = new SpeechRecognition();
+    browserRec.continuous = true; browserRec.interimResults = true;
+    browserRec.onresult = e => {
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t + ' '; else interim += t;
+      }
+      if (final) { if (browserInterim?.parentNode) { browserInterim.remove(); browserInterim = null; } document.execCommand('insertText', false, final); }
+      if (interim) {
+        if (!browserInterim) { browserInterim = document.createElement('span'); browserInterim.className = 'interim'; editor.appendChild(browserInterim); }
+        browserInterim.textContent = interim;
+      }
+      updateStats();
+    };
+    browserRec.onerror = e => { if (e.error === 'not-allowed') { toast('Mic denied'); stopVoice(); } };
+    browserRec.onend = () => { if (isRecording && state.settings.provider === 'browser') try { browserRec.start(); } catch (e) {} };
+  }
+
+  $('voiceBtn').onclick = () => isRecording ? stopVoice() : startVoice();
+
+  async function startVoice() {
+    isRecording = true;
+    $('voiceBtn').classList.add('recording'); $('voiceBtn').innerHTML = '⏹';
+    $('voiceStatus').style.display = 'inline';
+    if (state.settings.provider === 'whisper') {
+      if (!state.settings.apiKey) { toast('Add API key in Settings'); stopVoice(); return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const fd = new FormData();
+          fd.append('file', blob, 'recording.webm');
+          fd.append('model', 'whisper-1');
+          fd.append('language', state.settings.lang.split('-')[0]);
+          fd.append('response_format', 'text');
+          toast('Transcribing...');
+          try {
+            const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + state.settings.apiKey },
+              body: fd
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const text = await res.text();
+            if (text.trim()) { document.execCommand('insertText', false, text.trim() + ' '); updateStats(); save(); }
+            toast('Transcribed');
+          } catch (err) { toast('Whisper error: ' + err.message.slice(0, 80)); }
+        };
+        mediaRecorder.start();
+        toast('Recording (Whisper)...');
+      } catch (e) { toast('Mic error'); stopVoice(); }
+    } else {
+      if (!browserRec) { toast('Browser voice not supported'); stopVoice(); return; }
+      browserRec.lang = state.settings.lang;
+      try { browserRec.start(); toast('Listening...'); } catch (e) { stopVoice(); }
+    }
+  }
+
+  function stopVoice() {
+    isRecording = false;
+    $('voiceBtn').classList.remove('recording'); $('voiceBtn').innerHTML = '🎤';
+    $('voiceStatus').style.display = 'none';
+    if (state.settings.provider === 'whisper' && mediaRecorder?.state === 'recording') mediaRecorder.stop();
+    if (state.settings.provider === 'browser' && browserRec) { try { browserRec.stop(); } catch (e) {} }
+    if (browserInterim?.parentNode) { browserInterim.remove(); browserInterim = null; }
+  }
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelector(`[data-content="${t.dataset.tab}"]`).classList.add('active');
+      bibleCtx.type = t.dataset.tab; closeBible();
+    };
+  });
+
+  function renderBible() {
+    ['characters', 'places', 'notes'].forEach(type => {
+      const list = $(type + 'List'); list.innerHTML = '';
+      (state[type] || []).forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'bible-item';
+        d.innerHTML = `<div class="bible-item-name">${esc(item.name)}</div><div class="bible-item-desc">${esc(item.desc || '')}</div>`;
+        d.onclick = () => openBible(type, item.id);
+        d.oncontextmenu = e => {
+          e.preventDefault();
+          if (confirm(`Delete "${item.name}"?`)) { state[type] = state[type].filter(i => i.id !== item.id); renderBible(); save(); }
+        };
+        list.appendChild(d);
+      });
+    });
+  }
+  function openBible(type, id) {
+    const item = state[type].find(i => i.id === id); if (!item) return;
+    bibleCtx = { type, id };
+    $('bibleName').value = item.name; $('bibleDesc').value = item.desc || '';
+    $('bibleEditor').classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  }
+  function closeBible() {
+    $('bibleEditor').classList.remove('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = '');
+    bibleCtx = { type: 'characters', id: null };
+  }
+  $('bibleSave').onclick = () => {
+    const item = state[bibleCtx.type].find(i => i.id === bibleCtx.id);
+    if (item) { item.name = $('bibleName').value || 'Untitled'; item.desc = $('bibleDesc').value; }
+    renderBible(); closeBible(); save();
+  };
+  $('bibleCancel').onclick = closeBible;
+  ['character', 'place', 'note'].forEach(t => {
+    const key = t + 's';
+    $('add' + t.charAt(0).toUpperCase() + t.slice(1) + 'Btn').onclick = () => {
+      const name = prompt(`${t.charAt(0).toUpperCase() + t.slice(1)} name:`); if (!name) return;
+      state[key].push({ id: 'b_' + Date.now(), name, desc: '' }); renderBible(); save();
+    };
+  });
+  $('bibleBtn').onclick = () => $('app').classList.toggle('bible-open');
+
+  $('exportBtn').onclick = () => $('exportModal').classList.add('open');
+  $('closeExport').onclick = () => $('exportModal').classList.remove('open');
+  document.querySelectorAll('[data-scope]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('[data-scope]').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected'); exportScope = b.dataset.scope;
+  });
+  document.querySelectorAll('[data-format]').forEach(b => b.onclick = () => { exportAs(b.dataset.format, exportScope); $('exportModal').classList.remove('open'); });
+
+  function htmlToMd(html) {
+    const tmp = document.createElement('div'); tmp.innerHTML = html;
+    function walk(n) {
+      let out = '';
+      n.childNodes.forEach(c => {
+        if (c.nodeType === 3) out += c.textContent;
+        else if (c.nodeType === 1) {
+          const t = c.tagName.toLowerCase(), inner = walk(c);
+          if (t === 'h1') out += `\n# ${inner.trim()}\n\n`;
+          else if (t === 'h2') out += `\n## ${inner.trim()}\n\n`;
+          else if (t === 'h3') out += `\n### ${inner.trim()}\n\n`;
+          else if (t === 'p') out += `${inner.trim()}\n\n`;
+          else if (t === 'br') out += '\n';
+          else if (t === 'strong' || t === 'b') out += `**${inner}**`;
+          else if (t === 'em' || t === 'i') out += `*${inner}*`;
+          else if (t === 's') out += `~~${inner}~~`;
+          else if (t === 'blockquote') out += `\n> ${inner.trim()}\n\n`;
+          else if (t === 'ul') { c.querySelectorAll(':scope > li').forEach(li => out += `- ${walk(li).trim()}\n`); out += '\n'; }
+          else if (t === 'ol') { let i = 1; c.querySelectorAll(':scope > li').forEach(li => out += `${i++}. ${walk(li).trim()}\n`); out += '\n'; }
+          else if (t === 'hr') out += '\n---\n\n';
+          else out += inner;
+        }
+      });
+      return out;
+    }
+    return walk(tmp).replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function exportAs(format, scope) {
+    const proj = getProject();
+    const chapters = scope === 'book' ? proj.chapters : [getChapter()];
+    const filename = (proj.name || 'manuscript').replace(/[^a-z0-9-_ ]/gi, '').replace(/\s+/g, '-').toLowerCase();
+    let content, mime, ext;
+    
+    if (format === 'doc') {
+      // Word-compatible HTML export
+      const body = chapters.map((ch, i) => `<h1>${esc(ch.title || `Chapter ${i + 1}`)}</h1>${ch.content || ''}<br><br>`).join('\n');
+      content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${esc(proj.name)}</title></head><body>${body}</body></html>`;
+      mime = 'application/msword'; ext = 'doc';
+    } else if (format === 'html') {
+      const body = chapters.map((ch, i) => `<section><h1>${esc(ch.title || `Chapter ${i + 1}`)}</h1>${ch.content || '<p><em>Empty</em></p>'}</section><hr>`).join('\n');
+      content = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(proj.name)}</title><style>body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:20px;line-height:1.7;color:#3a2818}h1{color:#d96a1f}blockquote{border-left:3px solid #e8853a;padding-left:16px;color:#6b4a2a;font-style:italic}</style></head><body><h1 style="text-align:center;font-size:2.5em">${esc(proj.name)}</h1>${body}</body></html>`;
+      mime = 'text/html'; ext = 'html';
+    } else if (format === 'md') {
+      content = `# ${proj.name}\n\n` + chapters.map((ch, i) => `# ${ch.title || `Chapter ${i + 1}`}\n\n${htmlToMd(ch.content || '')}\n\n---\n\n`).join('\n');
+      mime = 'text/markdown'; ext = 'md';
+    } else if (format === 'txt') {
+      content = `${proj.name}\n${'='.repeat(50)}\n\n` + chapters.map((ch, i) => {
+        const d = document.createElement('div'); d.innerHTML = ch.content || '';
+        return `${ch.title || `Chapter ${i + 1}`}\n${'='.repeat(40)}\n\n${d.innerText}\n\n`;
+      }).join('\n');
+      mime = 'text/plain'; ext = 'txt';
+    }
+    
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `${filename}.${ext}`; a.click();
+    URL.revokeObjectURL(url); toast(`Exported as .${ext}`);
+  }
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); toast('Saved'); }
+    if (e.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+  });
+
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
+
+  render(); loadEditor(); renderBible();
+  if (!localStorage.getItem(LS + '.welcomed')) {
+    setTimeout(() => { toast('Welcome. Click ⚙ to configure Whisper.'); localStorage.setItem(LS + '.welcomed', '1'); }, 600);
+  }
+})();
+</script>
+</body>
+</html>
